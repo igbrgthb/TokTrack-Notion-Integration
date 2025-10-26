@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TokTrack • Planejador TikTok</title>
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#12151b; --ink:#e9eef6; --muted:#9aa4b2;
+    --tiktok-p:#fe2c55; --tiktok-b:#25f4ee; --ok:#31c48d; --warn:#f59e0b; --danger:#ef4444;
+    --border:#1f2632; --chip:#171c24; --shadow:0 14px 30px rgba(0,0,0,.35);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; color:var(--ink);
+    background:
+      linear-gradient(180deg, rgba(11,13,16,.75) 0%, rgba(11,13,16,.85) 30%, rgba(11,13,16,.95) 100%),
+      url("https://media.discordapp.net/attachments/1257869917387100161/1426230751250219119/Image_fx_24.jpg?ex=68ed1b65&is=68ebc9e5&hm=50488259610554fce19c7524867788462d967268c2fb16a8edab3faa80b477f6&=&format=webp") center / cover fixed no-repeat,
+      var(--bg);
+  }
+  .app{display:grid; grid-template-columns: 300px 1fr; min-height:100%}
+
+  /* Sidebar */
+  .sidebar{
+    padding:22px 18px; border-right:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    backdrop-filter:saturate(120%) blur(4px);
+    position:sticky; top:0; height:100vh; overflow:auto;
+  }
+  .brand{display:flex; gap:12px; align-items:center; margin-bottom:18px}
+  .logo{
+    width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+    background:#0f1319; border:1px solid var(--border); box-shadow:var(--shadow);
+    position:relative; overflow:hidden;
+  }
+  .logo svg{width:28px; height:28px}
+  .brand h1{margin:0; font-size:18px}
+  .sub{color:var(--muted); font-size:12px}
+  .clock{margin:14px 0 18px; padding:12px; border:1px solid var(--border); border-radius:12px; background:#0e131a}
+  .clock .t{font-size:22px; font-variant-numeric:tabular-nums}
+  .clock .d{color:var(--muted); font-size:12px}
+
+  .side-actions{display:grid; gap:10px; margin:18px 0 10px}
+  .btn{
+    border:1px solid var(--border); background:linear-gradient(180deg,#171c24,#10151d);
+    color:var(--ink); padding:10px 12px; border-radius:10px; cursor:pointer;
+    transition:.15s transform ease, .2s box-shadow ease, .2s border-color ease;
+  }
+  .btn:hover{transform:translateY(-1px); box-shadow:0 10px 20px rgba(0,0,0,.25)}
+  .btn.primary{background:linear-gradient(180deg, #fe2c55, #c41f40); border-color:#fe2c55}
+  .btn.miami{background:linear-gradient(180deg, #25f4ee, #1fc8c3); border-color:#25f4ee; color:#041014}
+  .btn.danger{background:linear-gradient(180deg,#ef4444,#c63c3c); border-color:#ef4444}
+  .btn.small{padding:8px 10px; font-size:13px}
+  .btn:disabled{opacity:0.5; cursor:not-allowed}
+
+  .stats{display:grid; gap:10px}
+  .stat{padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#0f141c; display:flex; justify-content:space-between; align-items:center}
+  .stat .k{color:var(--muted); font-size:12px}
+  .stat .v{font-weight:800}
+
+  .filters{margin-top:16px; display:grid; gap:8px}
+  .search{display:flex; gap:8px}
+  .search input{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0b0f14; color:var(--ink)}
+  .chip{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--ink); font-size:13px; cursor:pointer}
+  .chip input{appearance:none; width:12px; height:12px; border-radius:50%; border:2px solid var(--muted)}
+  .chip input:checked{border-color:transparent; background:#31c48d}
+
+  /* Main */
+  .main{padding:24px; display:grid; align-content:start; gap:20px}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+  .title{font-size:22px; font-weight:900}
+  .tags{display:flex; gap:8px; flex-wrap:wrap}
+  .tag{padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#101621; color:var(--muted); font-size:12px}
+
+  .grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap:14px}
+  .card{border:1px solid var(--border); border-radius:var(--radius); background:linear-gradient(180deg,#111722,#0c1119);
+        box-shadow:var(--shadow); overflow:hidden; display:grid; gap:10px; padding:14px}
+  .card h3{margin:0; font-size:16px}
+  .meta{display:grid; gap:6px; color:var(--muted); font-size:13px}
+  .row{display:flex; justify-content:space-between; gap:10px}
+  .kbd{font-variant-numeric:tabular-nums; font-weight:700; color:var(--ink)}
+  .meter{width:100%; height:9px; background:#0b0f14; border-radius:999px; border:1px solid var(--border); overflow:hidden}
+  .meter>i{display:block; height:100%; background:linear-gradient(90deg, var(--tiktok-b), var(--tiktok-p))}
+  .badge{padding:4px 8px; border-radius:999px; font-size:11px; border:1px solid var(--border); background:#101621; color:var(--muted)}
+  .badge.good{color:#31c48d; border-color:#1f3a2e; background:#0d1b14}
+  .badge.mid{color:#f59e0b; border-color:#3b2a12; background:#171106}
+  .badge.low{color:#ef4444; border-color:#3a1515; background:#160a0a}
+  .actions{display:flex; gap:8px; flex-wrap:wrap}
+  .posted{background:linear-gradient(180deg, #14221c, #0e1914); border-color:#214d2e}
+
+  .state{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+  .dot{width:8px; height:8px; border-radius:50%}
+  .ok{background:var(--ok)} .wait{background:var(--tiktok-b); animation:pulse 1s infinite} .miss{background:var(--danger); animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{transform:scale(1); opacity:.9}50%{transform:scale(1.25); opacity:.55}100%{transform:scale(1); opacity:.9}}
+
+  /* Dialog */
+  dialog{border:none; border-radius:16px; padding:0; width:min(640px, 92vw); background:#0f141c; color:var(--ink); box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  dialog::backdrop{background:rgba(0,0,0,.6); backdrop-filter:blur(2px)}
+  .dlg-head{padding:16px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center}
+  .dlg-body{padding:18px}
+  .dlg-foot{padding:16px 18px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end}
+  .grid2{display:grid; gap:12px; grid-template-columns:1fr 1fr}
+  .grid3{display:grid; gap:12px; grid-template-columns:1fr 1fr 1fr}
+  label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
+  input, select, textarea{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0b0f14; color:var(--ink)}
+  textarea{min-height:90px; resize:vertical}
+
+  /* Toasts */
+  .toasts{position:fixed; right:18px; bottom:18px; display:grid; gap:10px; z-index:50}
+  .toast{padding:12px 14px; border-radius:12px; background:#101821; border:1px solid var(--border); box-shadow:var(--shadow); display:flex; gap:10px; align-items:flex-start; max-width:min(380px, 92vw)}
+  .toast.success{border-color:#214d2e; background:#0f1a14}
+  .toast.warn{border-color:#3b2a12; background:#1a140c}
+  .toast.danger{border-color:#3a1515; background:#190d0d}
+  .toast .title{font-weight:700}
+  .toast .msg{color:var(--muted); font-size:13px}
+  .toast button{margin-left:auto}
+
+  .empty{border:1px dashed var(--border); border-radius:16px; padding:28px; text-align:center; color:var(--muted)}
+  @media (max-width:940px){ .app{grid-template-columns:1fr} .sidebar{position:static; height:auto} }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo" title="TokTrack">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#25f4ee"/><stop offset="1" stop-color="#fe2c55"/></linearGradient></defs>
+          <path fill="url(#g1)" d="M31 6c1.2 3.9 4.1 7 8 8v6.1c-3.6-.3-6.9-1.7-8-3.1v11.2a10.2 10.2 0 1 1-10.2-10.2c.8 0 1.6.1 2.3.3v6.5c-.7-.3-1.4-.4-2.2-.4a3.8 3.8 0 1 0 3.8 3.8V6h6.3Z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>TokTrack</h1>
+        <div class="sub">Planejador de postagens • TikTok</div>
+      </div>
+    </div>
+
+    <div class="clock">
+      <div class="t" id="clk">--:--:--</div>
+      <div class="d" id="dat">--/--/----</div>
+    </div>
+
+    <div class="side-actions">
+      <button class="btn primary" id="addAccount">+ Nova conta</button>
+      <button class="btn" id="exportBtn">Exportar JSON</button>
+      <button class="btn" id="importBtn">Importar JSON</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="k">Contas</span><span class="v" id="st-ct">0</span></div>
+      <div class="stat"><span class="k">Backlog total</span><span class="v" id="st-bg">0</span></div>
+      <div class="stat"><span class="k">Pendentes hoje</span><span class="v" id="st-pd">0</span></div>
+    </div>
+
+    <div class="filters">
+      <div class="search"><input id="q" placeholder="Buscar por @user, nicho, região ou e-mail..." /></div>
+      <label class="chip"><input type="checkbox" id="f-pending"> Pendentes hoje</label>
+      <label class="chip"><input type="checkbox" id="f-critical"> Backlog crítico</label>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="title">Contas TikTok</div>
+      <div class="tags">
+        <span class="tag">Legenda máx: 2.200 caracteres</span>
+        <span class="tag">Vídeo: 9:16 (1080×1920)</span>
+        <span class="tag">Ideal: 1–3 posts/dia</span>
+      </div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" style="display:none">
+      Nenhuma conta ainda. Clique em <strong>"+ Nova conta"</strong> para começar.
+    </div>
+  </main>
+</div>
+
+<!-- DIALOG: CREATE/EDIT ACCOUNT -->
+<dialog id="dlg">
+  <div class="dlg-head">
+    <strong id="dlg-title">Nova conta</strong>
+    <button class="btn small" onclick="dlg.close()">✕</button>
+  </div>
+  <form id="form" class="dlg-body">
+    <div class="grid2">
+      <div><label>@Usuário</label><input id="f-user" placeholder="@meuPerfil" required /></div>
+      <div><label>Nicho</label><input id="f-niche" placeholder="Ex.: Humor, Culinária, Oração" required /></div>
+    </div>
+
+    <!-- E-mail -->
+    <div class="grid2" style="margin-top:10px">
+      <div>
+        <label>E-mail (opcional)</label>
+        <input id="f-email" type="email" placeholder="ex.: nome@dominio.com" />
+      </div>
+      <div></div>
+    </div>
+
+    <div class="grid3" style="margin-top:10px">
+      <div><label>Posts/dia</label><input id="f-perday" type="number" min="1" value="1" required /></div>
+      <div><label>Horário</label><input id="f-time" type="time" value="12:00" required /></div>
+      <div><label>Backlog (vídeos)</label><input id="f-backlog" type="number" min="0" value="0" required /></div>
+    </div>
+
+    <!-- Região + duração -->
+    <div class="grid2" style="margin-top:10px">
+      <div>
+        <label>Região da conta</label>
+        <input id="f-region" list="regionList" placeholder="Ex.: Brasil, EUA, Europa, Ásia" />
+        <datalist id="regionList">
+          <option value="Brasil"></option>
+          <option value="Portugal"></option>
+          <option value="EUA"></option>
+          <option value="Canadá"></option>
+          <option value="Europa"></option>
+          <option value="LATAM"></option>
+          <option value="Ásia"></option>
+          <option value="Oriente Médio"></option>
+        </datalist>
+      </div>
+      <div>
+        <label>Duração alvo (s)</label>
+        <input id="f-len" type="number" min="3" max="180" value="30" />
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:10px">
+      <div>
+        <label>Legenda padrão (usada no gerador)</label>
+        <input id="f-caption" placeholder="Ex.: Texto base com {hashtag}" />
+      </div>
+      <div></div>
+    </div>
+
+    <input type="hidden" id="f-id" />
+  </form>
+  <div class="dlg-foot">
+    <button class="btn" onclick="dlg.close()">Cancelar</button>
+    <button class="btn primary" id="saveBtn">Salvar</button>
+  </div>
+</dialog>
+
+<!-- DIALOG: CAPTION GENERATOR -->
+<dialog id="capDlg">
+  <div class="dlg-head">
+    <strong>Gerador de Legenda</strong>
+    <button class="btn small" onclick="capDlg.close()">✕</button>
+  </div>
+  <div class="dlg-body">
+    <div class="grid2">
+      <div>
+        <label>Legenda</label>
+        <textarea id="capText" placeholder="Escreva sua legenda..."></textarea>
+      </div>
+      <div>
+        <label>Hashtags sugeridas</label>
+        <textarea id="capHash" placeholder="SOMENTE SOBRE SEU NICHO ..."></textarea>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="sub">Limite TikTok: 2200 caracteres • <strong id="capCount">0</strong>/2200</span>
+      <div style="display:flex; gap:8px">
+        <button class="btn small" id="insertHashes">Inserir hashtags</button>
+        <button class="btn small miami" id="copyCaption">Copiar</button>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn" onclick="capDlg.close()">Fechar</button>
+  </div>
+</dialog>
+
+<!-- DIALOG: DELETE CONFIRM -->
+<dialog id="confirmDlg">
+  <div class="dlg-head"><strong>Confirmar exclusão</strong></div>
+  <div class="dlg-body" id="confirmText">Tem certeza?</div>
+  <div class="dlg-foot">
+    <button class="btn" onclick="confirmDlg.close()">Cancelar</button>
+    <button class="btn danger" id="confirmDo">Excluir</button>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ==================================================
+   TokTrack • Planner TikTok com Notion
+   ================================================== */
+const API_BASE = '/api';
+const idealBacklog = 60;
+
+let accounts = [];
+let filterPending=false, filterCritical=false, query='';
+let isLoading = false;
+
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+
+// Toast
+const toast=(title,msg='',type='')=>{
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<div><div class="title">${title}</div><div class="msg">${msg}</div></div>
+    <button class="btn small">Ok</button>`;
+  el.querySelector('button').onclick=()=>el.remove();
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(), type==='warn'?8000:5000);
+};
+
+// API Calls
+async function apiCall(method, endpoint, data=null) {
+  try {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (data) options.body = JSON.stringify(data);
+    
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error(`API Error [${method} ${endpoint}]:`, error);
+    toast('Erro de conexão', 'Verifique sua conexão com o servidor.', 'danger');
+    throw error;
+  }
+}
+
+async function loadAccounts() {
+  isLoading = true;
+  try {
+    accounts = await apiCall('GET', '/accounts');
+    render();
+  } catch (error) {
+    toast('Erro ao carregar', 'Não foi possível carregar as contas.', 'danger');
+  } finally {
+    isLoading = false;
+  }
+}
+
+// Time helpers
+function todayStr(){ return new Date().toDateString(); }
+function tzTime(d=new Date()){ return d.toLocaleTimeString('pt-BR',{hour12:false}); }
+function tzDate(d=new Date()){ return d.toLocaleDateString('pt-BR'); }
+
+// Clock
+(function tick(){
+  document.getElementById('clk').textContent = tzTime();
+  document.getElementById('dat').textContent = tzDate();
+  requestAnimationFrame(tick);
+})();
+
+// Helpers
+const pct = b => Math.min(100, Math.round((b/idealBacklog)*100));
+const badgeClass = b => (pct(b)>=70?'good': pct(b)>=30?'mid':'low');
+function postedToday(a){ return a.lastPost && new Date(a.lastPost).toDateString()===todayStr(); }
+function pastTime(a){
+  const [h,m] = a.postTime.split(':').map(Number);
+  const t = new Date(); t.setHours(h,m,0,0);
+  return new Date() > t && !postedToday(a);
+}
+
+// Hashtags simples por nicho
+function suggestTags(niche=''){
+  const n = (niche||'').toLowerCase();
+  if(n.includes('oração')||n.includes('fé')) return '#oração #fé #oracaododia #deusnocontrole #gratidao';
+  if(n.includes('humor')||n.includes('comédia')) return '#humor #comedia #brasil #piadas';
+  if(n.includes('futebol')) return '#futebol #bola #fut #jogadas #futeboldiario';
+  if(n.includes('culin')||n.includes('receita')) return '#culinaria #receitas #comida #aprenda #dicasdecozinha';
+  if(n.includes('games')||n.includes('jogo')) return '#games #gameplay #clips #gamer';
+  return '';
+}
+
+// Render
+function render(){
+  $('#st-ct').textContent = accounts.length;
+  $('#st-bg').textContent = accounts.reduce((a,c)=>a+c.backlog,0);
+  $('#st-pd').textContent = accounts.filter(a=>!postedToday(a)).length;
+
+  const grid=$('#grid'); grid.innerHTML='';
+  const list = accounts
+    .filter(a=> {
+      if(!query) return true;
+      const q=query;
+      return (
+        a.user.toLowerCase().includes(q) ||
+        a.niche.toLowerCase().includes(q) ||
+        (a.region||'').toLowerCase().includes(q) ||
+        (a.email||'').toLowerCase().includes(q)
+      );
+    })
+    .filter(a=> filterPending ? !postedToday(a) : true)
+    .filter(a=> filterCritical ? badgeClass(a.backlog)==='low' : true);
+
+  $('#empty').style.display = list.length? 'none':'block';
+
+  list.forEach(a=>{
+    const p=pct(a.backlog);
+    const days = Math.floor((a.videosPerDay ? a.backlog/a.videosPerDay : 0));
+    const posted = postedToday(a);
+    const state = posted ? ['ok','Postado hoje']
+               : pastTime(a) ? ['miss','Atrasado']
+               : ['wait','Aguardando'];
+    const last = a.lastPost ? tzDate(new Date(a.lastPost)) : 'Nunca';
+    const region = a.region ? a.region : '—';
+    const emailHTML = a.email
+      ? `<a href="mailto:${a.email}" style="color:inherit;text-decoration:underline">${a.email}</a>`
+      : '—';
+
+    const card=document.createElement('div');
+    card.className=`card ${posted?'posted':''}`;
+    card.innerHTML = `
+      <div class="row" style="align-items:center">
+        <h3>${a.user}</h3>
+        <span class="badge ${badgeClass(a.backlog)}">${p}% do ideal</span>
+      </div>
+      <div class="meta">
+        <div class="row"><span>Nicho</span><span class="kbd">${a.niche}</span></div>
+        <div class="row"><span>E-mail</span><span class="kbd">${emailHTML}</span></div>
+        <div class="row"><span>Região</span><span class="kbd">${region}</span></div>
+        <div class="row"><span>Posts/dia</span><span class="kbd">${a.videosPerDay}</span></div>
+        <div class="row"><span>Horário</span><span class="kbd">${a.postTime}</span></div>
+        <div class="row"><span>Duração alvo</span><span class="kbd">${a.targetLen||30}s</span></div>
+        <div class="row"><span>Último post</span><span class="kbd">${last}</span></div>
+      </div>
+      <div class="meter" title="Backlog: ${a.backlog} (${days} dia(s))"><i style="width:${p}%"></i></div>
+      <div class="row" style="align-items:center">
+        <span>Backlog: <strong>${a.backlog}</strong> • <span class="sub">${days} dia(s)</span></span>
+        <span class="state"><span class="dot ${state[0]}"></span>${state[1]}</span>
+      </div>
+      <div class="actions">
+        <button class="btn small" onclick="openEdit('${a.id}')">⚙️ Editar</button>
+        <button class="btn small" onclick="bump('${a.id}',1)">+1</button>
+        <button class="btn small" onclick="bump('${a.id}',-1)" ${a.backlog? '':'disabled'}>-1</button>
+        <button class="btn small" onclick="openCaption('${a.id}')">✍️ Legenda</button>
+        ${posted
+          ? `<button class="btn small" onclick="unmark('${a.id}')">↶ Desmarcar</button>`
+          : `<button class="btn small primary" onclick="mark('${a.id}')">✅ Marcar postado</button>`}
+        <button class="btn small danger" onclick="askDelete('${a.id}','${a.user.replace(/'/g,'&#39;')}')">🗑️</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// Dialog refs
+const dlg = document.getElementById('dlg');
+document.getElementById('saveBtn').addEventListener('click', saveForm);
+document.getElementById('addAccount').addEventListener('click', openCreate);
+
+// Create/Edit
+function openCreate(){
+  document.getElementById('dlg-title').textContent='Nova conta';
+  document.getElementById('f-id').value='';
+  document.getElementById('f-user').value='@';
+  document.getElementById('f-niche').value='';
+  document.getElementById('f-perday').value=1;
+  document.getElementById('f-time').value='12:00';
+  document.getElementById('f-backlog').value=0;
+  document.getElementById('f-len').value=30;
+  document.getElementById('f-caption').value='';
+  document.getElementById('f-region').value='';
+  document.getElementById('f-email').value='';
+  dlg.showModal();
+}
+
+function openEdit(id){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  document.getElementById('dlg-title').textContent='Editar conta';
+  document.getElementById('f-id').value=a.id;
+  document.getElementById('f-user').value=a.user;
+  document.getElementById('f-niche').value=a.niche;
+  document.getElementById('f-perday').value=a.videosPerDay;
+  document.getElementById('f-time').value=a.postTime;
+  document.getElementById('f-backlog').value=a.backlog;
+  document.getElementById('f-len').value=a.targetLen||30;
+  document.getElementById('f-caption').value=a.caption||'';
+  document.getElementById('f-region').value=a.region||'';
+  document.getElementById('f-email').value=a.email||'';
+  dlg.showModal();
+}
+
+async function saveForm(ev){
+  ev.preventDefault();
+  const id = document.getElementById('f-id').value;
+  const payload={
+    user: document.getElementById('f-user').value.trim(),
+    niche: document.getElementById('f-niche').value.trim(),
+    videosPerDay: Math.max(1, parseInt(document.getElementById('f-perday').value||'1',10)),
+    postTime: document.getElementById('f-time').value,
+    backlog: Math.max(0, parseInt(document.getElementById('f-backlog').value||'0',10)),
+    targetLen: Math.max(3, parseInt(document.getElementById('f-len').value||'30',10)),
+    caption: document.getElementById('f-caption').value,
+    region: document.getElementById('f-region').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+  };
+
+  try {
+    if (id) {
+      // Update
+      await apiCall('PUT', `/accounts/${id}`, payload);
+      toast('Atualizado ✅', `${payload.user} foi atualizado.`, 'success');
+    } else {
+      // Create
+      await apiCall('POST', '/accounts', payload);
+      toast('Criado ✅', `${payload.user} foi adicionado.`, 'success');
+    }
+    dlg.close();
+    await loadAccounts();
+  } catch (error) {
+    toast('Erro ao salvar', 'Verifique os dados e tente novamente.', 'danger');
+  }
+}
+
+// Actions
+async function bump(id,delta){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  const newBacklog = Math.max(0, a.backlog+delta);
+  try {
+    await apiCall('PUT', `/accounts/${id}`, { ...a, backlog: newBacklog });
+    await loadAccounts();
+  } catch (error) {
+    toast('Erro ao atualizar', 'Não foi possível atualizar o backlog.', 'danger');
+  }
+}
+
+async function mark(id){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  if(a.backlog<=0){ toast('Sem vídeos', `O backlog de ${a.user} está zerado.`, 'warn'); return; }
+  try {
+    await apiCall('PUT', `/accounts/${id}`, { 
+      ...a, 
+      backlog: a.backlog - 1, 
+      lastPost: new Date().toISOString() 
+    });
+    await loadAccounts();
+    toast('Postado ✅', `${a.user}: restam ${a.backlog - 1} vídeos.`, 'success');
+  } catch (error) {
+    toast('Erro ao marcar', 'Não foi possível marcar como postado.', 'danger');
+  }
+}
+
+async function unmark(id){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  if(!postedToday(a)){ toast('Nada para desmarcar', `${a.user} não foi marcado hoje.`, 'warn'); return; }
+  try {
+    const y=new Date(); y.setDate(y.getDate()-1);
+    await apiCall('PUT', `/accounts/${id}`, { 
+      ...a, 
+      backlog: a.backlog + 1, 
+      lastPost: y.toISOString() 
+    });
+    await loadAccounts();
+    toast('Desmarcado ↶', `${a.user}: backlog ${a.backlog + 1}.`, 'success');
+  } catch (error) {
+    toast('Erro ao desmarcar', 'Não foi possível desmarcar.', 'danger');
+  }
+}
+
+// Delete dialog
+const confirmDlg = document.getElementById('confirmDlg'); let pendingDeleteId=null;
+function askDelete(id,user){
+  pendingDeleteId=id;
+  document.getElementById('confirmText').innerHTML=`Excluir <strong>${user}</strong>?<br><small>Essa ação não pode ser desfeita.</small>`;
+  confirmDlg.showModal();
+}
+document.getElementById('confirmDo').onclick=async ()=>{
+  if(!pendingDeleteId){ confirmDlg.close(); return; }
+  try {
+    await apiCall('DELETE', `/accounts/${pendingDeleteId}`);
+    pendingDeleteId=null;
+    await loadAccounts();
+    confirmDlg.close();
+    toast('Conta removida','Exclusão concluída.','success');
+  } catch (error) {
+    toast('Erro ao deletar', 'Não foi possível remover a conta.', 'danger');
+  }
+};
+
+// Caption generator
+const capDlg = document.getElementById('capDlg');
+function openCaption(id){
+  const a=accounts.find(x=>x.id===id); if(!a) return;
+  capDlg.dataset.target=id;
+  const hashes = suggestTags(a.niche);
+  document.getElementById('capHash').value = hashes;
+  const base = a.caption || '';
+  document.getElementById('capText').value = base.includes('{hashtag}') ? base.replace('{hashtag}', hashes) : base;
+  updateCount();
+  capDlg.showModal();
+}
+function updateCount(){
+  const txt = document.getElementById('capText').value;
+  document.getElementById('capCount').textContent = txt.length;
+  document.getElementById('capCount').style.color = txt.length>2200 ? 'var(--danger)' : 'var(--ink)';
+}
+document.getElementById('capText').addEventListener('input', updateCount);
+document.getElementById('insertHashes').onclick=()=>{
+  const t=document.getElementById('capText'); const h=document.getElementById('capHash').value.trim();
+  const sep = t.value && !t.value.endsWith(' ') ? ' ' : '';
+  t.value = t.value + sep + h;
+  updateCount();
+};
+document.getElementById('copyCaption').onclick=()=>{
+  const txt=document.getElementById('capText').value;
+  navigator.clipboard.writeText(txt).then(()=> toast('Legenda copiada 📋','Cole no upload do TikTok.','success'));
+};
+
+// Import / Export
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(accounts,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='toktrack.json'; a.click();
+  URL.revokeObjectURL(url);
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change', async (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const text=await f.text();
+  try{
+    const data=JSON.parse(text);
+    if(!Array.isArray(data)) throw new Error('Formato inválido');
+    // Importar cada conta
+    for (const account of data) {
+      await apiCall('POST', '/accounts', account);
+    }
+    await loadAccounts();
+    toast('Importado ✅', `${data.length} contas carregadas.`,'success');
+  }catch(err){ toast('Erro ao importar', String(err), 'danger'); }
+});
+
+// Search & filters
+document.getElementById('q').addEventListener('input', e=>{ query=e.target.value.trim().toLowerCase(); render(); });
+document.getElementById('f-pending').addEventListener('change', e=>{ filterPending=e.target.checked; render(); });
+document.getElementById('f-critical').addEventListener('change', e=>{ filterCritical=e.target.checked; render(); });
+
+// First paint
+loadAccounts();
+</script>
+</body>
+</html>
+
